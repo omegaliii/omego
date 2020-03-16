@@ -10,12 +10,12 @@ type HandlerFunc func(*Context)
 // Engine implements the interface of ServeHTTP 
 // router [Key: route] [Value: handler function]
 type Engine struct {
-	router *Router
+	router *router
 }
 
 // Constructor
 func New() *Engine {
-	return &Engine{router: NewRouter()}
+	return &Engine{router: newRouter()}
 }
 
 func (engine *Engine) addRoute (method string, pattern string, handler HandlerFunc) {
