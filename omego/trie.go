@@ -18,6 +18,7 @@ func (n *node) String() string {
 }
 
 // Recursively insert the node
+// height also is the index to access the parts
 func (n *node) insert(pattern string, parts []string, height int) {
     // Base Case: return when it is the last one of parts
     if len(parts) == height {
