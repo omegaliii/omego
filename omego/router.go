@@ -71,7 +71,7 @@ func (router *router) addRoute (method string, pattern string, handler HandlerFu
 // @param pattern[string] - path
 //
 // @return node - leaf node of the path
-// @return node - parameters of the path
+// @return map[string]string - parameters of the path
 func (router *router) getRoute(method string, path string) (*node, map[string]string) {
 	searchParts := parsePattern(path)
 	params := make(map[string]string)
