@@ -66,7 +66,7 @@ func (router *router) addRoute (method string, pattern string, handler HandlerFu
     router.handlers[key] = handler
 }
 
-// Add route from the router
+// Get route node from the router as well collect the parameters
 // @param method[string] - http verb
 // @param pattern[string] - path
 //
@@ -107,14 +107,18 @@ func (router *router) getRoute(method string, path string) (*node, map[string]st
 func (router *router) handle(c *Context) {
     node, params := router.getRoute(c.Method, c.Path)
 
+	// Append the user defined handler function into c.handlers to handle later
     if node != nil {
 		c.Params = params
         key := c.Method + "-" + node.pattern
-        // run the handler function
-		router.handlers[key](c)
+		c.handlers = append(c.handlers, router.handlers[key])
 	} else {
-		c.String(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
+		c.handlers = append(c.handlers, func(c *Context) {
+			c.String(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
+		})
 	}
+
+	c.Next()
 }
 
 

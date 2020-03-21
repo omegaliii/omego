@@ -18,14 +18,31 @@ type Context struct {
 	// Response
 	Writer http.ResponseWriter
 	StatusCode int
+
+	// Middleware
+	handlers []HandlerFunc
+	index int
 }
 
+// Constructor
+// @params w[http.ResponseWriter]
+// @params r[*http.Request]
 func newContext(w http.ResponseWriter, r *http.Request) *Context {
 	return &Context{
-		Writer:  w,
 		Request: r,
 		Path:    r.URL.Path,
 		Method:  r.Method,
+		Writer:  w,
+		index:   -1,
+	}
+}
+
+func (c *Context) Next() {
+	c.index++
+	s := len(c.handlers)
+
+	for ; c.index < s; c.index++ {
+		c.handlers[c.index](c)
 	}
 }
 

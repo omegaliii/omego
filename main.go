@@ -5,9 +5,6 @@ import (
 	"omego"
 )
 
-// Engine is the uni handler for all requests
-type Engine struct{}
-
 func main() {
 	r := omego.New()
 
@@ -34,8 +31,6 @@ func main() {
 		})
 
 	}
-
-	r.Run(":9999")
 
 	r.Run(":9999")
 }

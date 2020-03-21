@@ -1,6 +1,7 @@
 package omego
 
 import (
+	"strings"
 	"log"
 	"net/http"
 )
@@ -78,6 +79,12 @@ func (group *RouterGroup) Group(prefix string) *RouterGroup {
 	return newGroup
 }
 
+// Append middle to the group.middlewares
+// @params middlewares[...HandlerFunc] - a list of handler function
+func (group *RouterGroup) Use(midlewares ...HandlerFunc) {
+	group.middlewares = append(group.middlewares, midlewares...)
+}
+
 // Handle POST request for the path pattern via Group
 // @params pattern[string] - path
 // @params handler[HandlerFunc] - call back function
@@ -110,8 +117,18 @@ func (group *RouterGroup) addRoute(method string, comp string, handler HandlerFu
 }
 
 // To pass an engine to http.ListenAndServe
-// Engine must implement ServeHTTP to be a Hanlder(interface from net/http)
+// Engine must implement ServeHTTP to be a Handler(interface from net/http)
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	// When a request comes in, append middlewares to context from the groups which prefix in the URL path
+	var middlewares []HandlerFunc
+	for _, group := range engine.groups {
+		if strings.HasPrefix(r.URL.Path, group.prefix) {
+			middlewares = append(middlewares, group.middlewares...)
+		}
+	}
+
 	c := newContext(w, r)
+	c.handlers = middlewares
 	engine.router.handle(c)
 }
