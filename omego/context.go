@@ -40,6 +40,11 @@ func newContext(w http.ResponseWriter, r *http.Request) *Context {
 	}
 }
 
+func (c *Context) Fail(code int, err string) {
+	c.index = len(c.handlers)
+	c.JSON(code, H{"message": err})
+}
+
 func (c *Context) Next() {
 	c.index++
 	s := len(c.handlers)

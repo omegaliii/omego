@@ -21,6 +21,8 @@ func formatAsDate(t time.Time) string {
 func main() {
 	r := omego.New()
 	r.Use(omego.Logger())
+	r.Use(omego.Recovery())
+
 	r.SetFuncMap(template.FuncMap{
 		"formatAsDate": formatAsDate,
 	})
@@ -29,7 +31,7 @@ func main() {
 
 	stu1 := &student{Name: "omegoktutu", Age: 20}
 	stu2 := &student{Name: "Jack", Age: 22}
-	
+
 	r.GET("/", func(c *omego.Context) {
 		c.HTML(http.StatusOK, "css.tmpl", nil)
 	})
@@ -46,6 +48,11 @@ func main() {
 			"title": "omego",
 			"now":   time.Date(2019, 8, 17, 0, 0, 0, 0, time.UTC),
 		})
+	})
+
+	r.GET("/panic", func(c *omego.Context) {
+		names := []string{"geektutu"}
+		c.String(http.StatusOK, names[100])
 	})
 
 	r.Run(":9999")
