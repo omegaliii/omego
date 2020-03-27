@@ -4,6 +4,8 @@ import (
 	"strings"
 	"log"
 	"net/http"
+	"path"
+	"html/template"
 )
 
 // Signature for HandlerFunc
@@ -15,6 +17,10 @@ type Engine struct {
 	*RouterGroup //Embeddding, all the methods of RouterGroup are available on Engine
 	router       *router
 	groups       []*RouterGroup
+
+	//HTML render
+	htmlTemplates *template.Template 
+	funcMap       template.FuncMap
 }
 
 type RouterGroup struct {
@@ -32,6 +38,17 @@ func New() *Engine {
 	return engine
 }
 
+// Serve static files
+// @params relativePath[string] - relative path to the static file
+// @parmas root[string] - root path
+func (group *RouterGroup) Static(relativePath string, root string) {
+	handler := group.createStaticHandler(relativePath, http.Dir(root))
+	urlPattern := path.Join(relativePath, "/*filepath")
+
+	// Register GET handlers
+	group.GET(urlPattern, handler)
+}
+
 // Run the engine in the address
 // @params address[string] - server address
 func (engine *Engine) Run(address string) (err error) {
@@ -42,27 +59,9 @@ func (engine *Engine) Run(address string) (err error) {
 	return http.ListenAndServe(address, engine)
 }
 
-//################################################
-//########### Add route via Engine ###############
-//################################################
-
-// Handle GET request for the path pattern via Engine
-// @params pattern[string] - path
-// @params handler[HandlerFunc] - call back function
-func (engine *Engine) GET(pattern string, handler HandlerFunc) {
-	engine.addRoute("GET", pattern, handler)
-}
-
-// Handle POST request for the path pattern via Engine
-// @params pattern[string] - path
-// @params handler[HandlerFunc] - call back function
-func (engine *Engine) POST(pattern string, handler HandlerFunc) {
-	engine.addRoute("POST", pattern, handler)
-}
-
-//###############################################
-//########### Add route via Group ###############
-//###############################################
+//######################################
+//########### Add route  ###############
+//######################################
 
 // Create a new group
 // @params prefix[string] - prefix path
@@ -99,6 +98,18 @@ func (group *RouterGroup) POST(pattern string, handler HandlerFunc) {
 	group.addRoute("POST", pattern, handler)
 }
 
+//#####################################
+//######## HTML render Methods ########
+//#####################################
+
+func (engine *Engine) SetFuncMap(funcMap template.FuncMap) {
+	engine.funcMap = funcMap
+}
+
+func (engine *Engine) LoadHTMLGlob(pattern string) {
+	engine.htmlTemplates = template.Must(template.New("").Funcs(engine.funcMap).ParseGlob(pattern))
+}
+
 //################################
 //######## Helper Methods ########
 //################################
@@ -130,5 +141,28 @@ func (engine *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	c := newContext(w, r)
 	c.handlers = middlewares
+	c.engine = engine
 	engine.router.handle(c)
+}
+
+// Create static handler function
+// @params relativePath[string] - relative path to the file
+// @params fs[http.FileSystem]  
+//
+// @return [callback function] 
+func (group *RouterGroup) createStaticHandler(relativePath string, fs http.FileSystem) HandlerFunc {
+	// Map absolutePath to http.FileSystem
+	absolutePath := path.Join(group.prefix, relativePath)
+	fileServer := http.StripPrefix(absolutePath, http.FileServer(fs))
+
+	return func(c *Context) {
+		file := c.Param("filepath")
+		// Check if file exists and/or if we have permission to access it
+		if _, err := fs.Open(file); err != nil {
+			c.Status(http.StatusNotFound)
+			return
+		}
+
+		fileServer.ServeHTTP(c.Writer, c.Request)
+	}
 }
